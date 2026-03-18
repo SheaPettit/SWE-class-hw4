@@ -46,6 +46,10 @@ public class DVDGUI implements DVDUserInterface {
 		 } while (choice != commands.length-1);
 		 System.exit(0);
 	 }
+	public void loadFile() {
+		String text = "dvddata.txt";
+		dvdlist.loadData(text);
+	}
 
 	private void doAddOrModifyDVD() {
 
