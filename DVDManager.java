@@ -1,5 +1,3 @@
-import java.util.*;
-
 /**
  * 	Program to display and modify a simple DVD collection
  */
@@ -7,11 +5,9 @@ import java.util.*;
 public class DVDManager {
 
 	public static void main(String[] args) {
-		
-		DVDGUI dlInterface;
+		DVDUserInterface dlInterface;
 		DVDCollection dl = new DVDCollection();
 		dlInterface = new DVDGUI(dl);
-		dlInterface.loadFile();
 		dlInterface.processCommands();
 	}
 
