@@ -2,12 +2,14 @@ import javax.swing.*;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
 import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.List;
+import java.awt.Dimension;
 
 /**
  * This class is an implementation of DVDUserInterface that uses JOptionPane to
@@ -45,41 +47,36 @@ public class DVDGUI implements DVDUserInterface {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		createUI(frame);
-		frame.setSize(560, 200);
+		frame.setSize(500, 200);
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}
 
 	private void createUI(final JFrame frame) {
 		JPanel displayPanel = new JPanel();
+		JPanel ratingPanel = new JPanel();
+		JPanel runtimePanel = new JPanel();
 		JPanel buttonPanel = new JPanel();
 		LayoutManager layout = new FlowLayout();
 		displayPanel.setLayout(layout);
 		buttonPanel.setLayout(layout);
+		ratingPanel.setLayout(new BorderLayout());
+		runtimePanel.setLayout(new BorderLayout());
 		
-		List dvdList = new List();
-		displayPanel.putClientProperty("ratingRuntimeList", getDVDLists(dvdList));
+
 		JTextArea rating = new JTextArea();
+		rating.setText("Rating:\n\nNew Rating:");
 		rating.setEditable(false);
 		rating.setFocusable(false);
+		JTextField ratingText = new JTextField();
+		ratingText.setSize(rating.getSize());
+
 		JTextArea runtime = new JTextArea();
+		runtime.setText("Running Time:\n\nNew Running Time:");
 		runtime.setEditable(false);
 		runtime.setFocusable(false);
-
-		dvdList.addItemListener(new ItemListener() {
-			public void itemStateChanged (ItemEvent e) {
-				if(e.getStateChange() == ItemEvent.SELECTED) {
-					int index = (int) e.getItem();
-					parseRatingRuntime((String []) displayPanel.getClientProperty("ratingRuntimeList"), index, rating, runtime);
-				}
-			}
-		});
-		
-		displayPanel.add(dvdList);
-		displayPanel.add(rating);
-		displayPanel.add(runtime);
-
-		frame.getContentPane().add(displayPanel, BorderLayout.NORTH);
+		JTextField runtimeText = new JTextField();
+		runtimeText.setSize(runtime.getSize());
 		
 		JButton addButton = new JButton("Add DVD");
 		JButton modifyButton = new JButton("Modify DVD");
@@ -87,12 +84,36 @@ public class DVDGUI implements DVDUserInterface {
 		JButton ratingButton = new JButton("Get DVDs By Rating");
 		JButton timeButton = new JButton("Get Total Running Time");
 		JButton exitButton = new JButton("Exit and Save");
+		JButton[] listButtons = {modifyButton, removeButton};
+
+		List dvdList = new List();
+		displayPanel.putClientProperty("dvdInfoList", getDVDLists(dvdList, listButtons));
+
+		dvdList.addItemListener(new ItemListener() {
+			public void itemStateChanged (ItemEvent e) {
+				if(e.getStateChange() == ItemEvent.SELECTED) {
+					if(!modifyButton.isEnabled()) {
+						for(JButton button : listButtons)
+							button.setEnabled(true);
+					}
+					int index = (int) e.getItem();
+					parseRatingRuntime((String []) displayPanel.getClientProperty("dvdInfoList"), index, rating, runtime);
+				}
+			}
+		});
 
 		addButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String[] list = doAddDVD(dvdList);
+				String[] list = doAddDVD(dvdList, listButtons);
 				if(list != null)
-					displayPanel.putClientProperty("ratingRuntimeList", list);
+					displayPanel.putClientProperty("dvdInfoList", list);
+			}
+		});
+		modifyButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String[] list = doModifyDVD(dvdList, (String[]) displayPanel.getClientProperty("dvdInfoList"), ratingText, runtimeText, listButtons);
+				if(list != null)
+					displayPanel.putClientProperty("dvdInfoList", list);
 			}
 		});
 		removeButton.addActionListener(new ActionListener() {
@@ -116,19 +137,30 @@ public class DVDGUI implements DVDUserInterface {
 				System.exit(0);
 			}
 		});
-		
+
+		displayPanel.add(dvdList);
+
+		ratingPanel.add(rating, BorderLayout.CENTER);
+		ratingPanel.add(ratingText, BorderLayout.SOUTH);
+		displayPanel.add(ratingPanel);
+
+		runtimePanel.add(runtime, BorderLayout.CENTER);
+		runtimePanel.add(runtimeText, BorderLayout.SOUTH);
+		displayPanel.add(runtimePanel);
 
 		frame.getRootPane().setDefaultButton(addButton);
 		buttonPanel.add(addButton);
+		buttonPanel.add(modifyButton);
 		buttonPanel.add(removeButton);
 		buttonPanel.add(ratingButton);
 		buttonPanel.add(timeButton);
 		buttonPanel.add(exitButton);
 
+		frame.getContentPane().add(displayPanel, BorderLayout.NORTH);
 		frame.getContentPane().add(buttonPanel, BorderLayout.CENTER);
 	}
 
-	private String[] getDVDLists(List list) {
+	private String[] getDVDLists(List list, JButton[] listButtons) {
 		String str = dvdlist.toString();
 		if(str.isEmpty())
 			return new String[0];
@@ -137,7 +169,7 @@ public class DVDGUI implements DVDUserInterface {
 			if(str.charAt(i) == '\n')
 				numLines++;
 		}
-		String[] ratingRuntimeList = new String[numLines];
+		String[] infoList = new String[numLines];
 		int currentItem = 0;
 		int prevIndex = 0;
 		int index = 0;
@@ -146,37 +178,85 @@ public class DVDGUI implements DVDUserInterface {
 			char current = str.charAt(index);
 			if(newLine && current == ',') {
 				list.add(str.substring(prevIndex, index));
-				prevIndex = index + 1;
 				newLine = false;
 			}
 			if(current == '\n') {
-				ratingRuntimeList[currentItem++] = str.substring(prevIndex, index);
+				infoList[currentItem++] = str.substring(prevIndex, index);
 				prevIndex = index + 1;
 				newLine = true;
 			}
 		}
-		ratingRuntimeList[numLines-1] = str.substring(prevIndex, index);
-		return ratingRuntimeList;
+		infoList[numLines-1] = str.substring(prevIndex, index);
+		for(JButton button : listButtons)
+			button.setEnabled(false);
+		return infoList;
 	}
 
 	private void parseRatingRuntime(String[] list, int index, JTextArea rating, JTextArea runtime) {
 		String parsestr = list[index];
 		int prevIndex = 0;
+		boolean notTitle = false;
 		for(int i = 0; i < parsestr.length(); i++) {
 			char character = parsestr.charAt(i);
+			if(character == ',' && notTitle) {
+				rating.setText("Rating:\n" + parsestr.substring(prevIndex, i) + "\nNew Rating:");
+				prevIndex = i + 1;
+				continue;
+			}
 			if(character == ',') {
-				rating.setText("Rating\n" + parsestr.substring(0, i));
+				prevIndex = i + 1;
+				notTitle = true;
+			}
+		}
+		runtime.setText("Running Time:\n" + parsestr.substring(prevIndex, parsestr.length()) + "\nNew Running Time:");
+	}
+
+	private String[] doModifyDVD(List dvds, String[] currentList, JTextField ratingText, JTextField runtimeText, JButton[] listButtons) {
+		int dvdIndex = dvds.getSelectedIndex();
+		String[] currentInfo = parseAll(currentList, dvdIndex);
+
+		String title = currentInfo[0];
+		String rating = ratingText.getText();
+		String time = runtimeText.getText();
+		boolean ratingBlank = rating.isBlank();
+		boolean timeBlank = time.isBlank();
+
+		if(ratingBlank && timeBlank)
+			return null;
+		if(ratingBlank)
+			rating = currentInfo[1];
+		if(timeBlank)
+			time = currentInfo[2];
+
+		ratingText.setText("");
+		runtimeText.setText("");
+
+		dvdlist.addOrModifyDVD(title, rating, time);
+
+		// Display current collection to the console for debugging
+		System.out.println("Modifying: " + title + "," + rating + "," + time);
+		System.out.println(dvdlist);
+		dvds.removeAll();
+		return getDVDLists(dvds, listButtons);
+	}
+	private String[] parseAll(String[] list, int index) {
+		String parsestr = list[index];
+		String[] dvdInfo = new String[3];
+		int prevIndex = 0;
+		int i = 0;
+		int num = 0;
+		for(; i < parsestr.length(); i++) {
+			char character = parsestr.charAt(i);
+			if(character == ',') {
+				dvdInfo[num++] = parsestr.substring(prevIndex, i);
 				prevIndex = i + 1;
 			}
 		}
-		runtime.setText("Running Time\n" + parsestr.substring(prevIndex, parsestr.length()));
-	}
-
-	private void doModifyDVD() {
-		return;
+		dvdInfo[num++] = parsestr.substring(prevIndex, i);
+		return dvdInfo;
 	}
 	
-	private String[] doAddDVD(List dvds) {
+	private String[] doAddDVD(List dvds, JButton[] listButtons) {
 
 		// Request the title
 		String title = JOptionPane.showInputDialog("Enter title");
@@ -202,10 +282,10 @@ public class DVDGUI implements DVDUserInterface {
 		dvdlist.addOrModifyDVD(title, rating, time);
 
 		// Display current collection to the console for debugging
-		System.out.println("Adding/Modifying: " + title + "," + rating + "," + time);
+		System.out.println("Adding: " + title + "," + rating + "," + time);
 		System.out.println(dvdlist);
 		dvds.removeAll();
-		return getDVDLists(dvds);
+		return getDVDLists(dvds, listButtons);
 	}
 
 	private void doRemoveDVD() {
