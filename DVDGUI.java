@@ -11,11 +11,6 @@ import java.awt.event.ItemListener;
 import java.awt.List;
 import java.awt.Dimension;
 
-/**
- * This class is an implementation of DVDUserInterface that uses JOptionPane to
- * display the menu of command choices.
- */
-
 public class DVDGUI implements DVDUserInterface {
 
 	private DVDCollection dvdlist;
@@ -32,7 +27,7 @@ public class DVDGUI implements DVDUserInterface {
 	private void loadFile() {
 		String file = "";
 		while(true) {
-			file = JOptionPane.showInputDialog("Enter File Name");
+			file = JOptionPane.showInputDialog(null, "Enter File Name", "Load File", JOptionPane.PLAIN_MESSAGE);
 			if(file == null)
 				System.exit(0);
 			if(file.isBlank())
@@ -278,21 +273,21 @@ public class DVDGUI implements DVDUserInterface {
 	private String[] doAddDVD(JPanel panel, List dvds, JButton[] listButtons, JTextArea ratingLabel, JTextArea runtimeLabel) {
 
 		// Request the title
-		String title = JOptionPane.showInputDialog("Enter title");
+		String title = JOptionPane.showInputDialog(null, "Enter title", "Title", JOptionPane.PLAIN_MESSAGE);
 		if (title == null) {
 			return null; // dialog was cancelled
 		}
 		title = title.toUpperCase();
 
 		// Request the rating
-		String rating = JOptionPane.showInputDialog("Enter rating for " + title);
+		String rating = JOptionPane.showInputDialog(null, "Enter rating for " + title, "Rating", JOptionPane.PLAIN_MESSAGE);
 		if (rating == null) {
 			return null; // dialog was cancelled
 		}
 		rating = rating.toUpperCase();
 
 		// Request the running time
-		String time = JOptionPane.showInputDialog("Enter running time for " + title);
+		String time = JOptionPane.showInputDialog(null, "Enter running time for " + title, "Running Time", JOptionPane.PLAIN_MESSAGE);
 		if (time == null) {
 			return null;
 		}
@@ -323,7 +318,7 @@ public class DVDGUI implements DVDUserInterface {
 	}
 
 	private String[] doGetDVDsByRating(JPanel panel, List dvds, JTextField ratingText, JTextField runtimeText, JButton[] listButtons, JTextArea ratingLabel, JTextArea runtimeLabel, JButton resetButton) {
-		String rating = JOptionPane.showInputDialog("Enter rating");
+		String rating = JOptionPane.showInputDialog(null, "Enter rating", "Rating", JOptionPane.PLAIN_MESSAGE);
 		if (rating == null) {
 			return null;
 		}
@@ -344,12 +339,10 @@ public class DVDGUI implements DVDUserInterface {
 		panel.putClientProperty("ratingSort", null);
 		dvds.removeAll();
 		return parseDVDLists(dvds, listButtons, null, ratingLabel, runtimeLabel);
-		
 	}
 
 	private void doGetTotalRunningTime() {
-
-		int total = dvdlist.getTotalRunningTime();
+		JOptionPane.showMessageDialog(null, dvdlist.getTotalRunningTime(), "Total Running Time", JOptionPane.PLAIN_MESSAGE);
 	}
 
 	private void doSave() {
