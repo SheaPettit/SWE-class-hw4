@@ -1,5 +1,12 @@
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -14,7 +21,6 @@ import java.nio.file.StandardCopyOption;
 import java.io.IOException;
 import java.util.Scanner;
 import java.awt.List;
-import java.awt.Dimension;
 
 public class DVDGUI implements DVDUserInterface {
 
@@ -342,7 +348,6 @@ public class DVDGUI implements DVDUserInterface {
 		imagePanel.add(imageText, BorderLayout.CENTER);
 		imagePanel.add(dvdImage, BorderLayout.SOUTH);
 		displayPanel.add(imagePanel);
-
 
 		button1Panel.add(addButton);
 		button1Panel.add(modifyButton);
