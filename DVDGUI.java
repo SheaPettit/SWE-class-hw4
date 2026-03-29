@@ -1,3 +1,4 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 import java.awt.BorderLayout;
@@ -9,6 +10,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Scanner;
 import java.awt.List;
 import java.awt.Dimension;
@@ -18,9 +23,12 @@ public class DVDGUI implements DVDUserInterface {
 	private DVDCollection dvdlist;
 	private String ratingSort;
 	private String[] dvdInfoList;
+	private String dvdImages;
+	private File[] defaultImages;
 
 	public DVDGUI(DVDCollection dl) {
 		dvdlist = dl;
+		defaultImages = new File[5];
 	}
 
 	public void processCommands() {
@@ -54,25 +62,20 @@ public class DVDGUI implements DVDUserInterface {
 		File file = new File(fileName);
 		Scanner scan = null;
 		try {
-			if(!file.createNewFile()){ //if it doesn't create a new file, scan the file
+			if(!file.createNewFile()){
 				scan = new Scanner(file);
 				String line, title, rating, runningTime;
 				int index = 0;
 				int prevIndex = 0;
 				while(scan.hasNextLine()) {
 					line = scan.nextLine();
-					//get title
 					index = nextBreak(line, index);
 					title = line.substring(prevIndex, index);
-					//get rating
 					prevIndex = ++index;
 					index = nextBreak(line, index);
 					rating = line.substring(prevIndex, index++);
-					//get runningtime
 					runningTime = line.substring(index, line.length());
-					//check for corruption, and add dvd to array
 					dvdlist.addOrModifyDVD(title, rating, runningTime);
-					//prepare for next line
 					index = 0;
 					prevIndex = 0;
 				}
@@ -80,6 +83,54 @@ public class DVDGUI implements DVDUserInterface {
 		} catch(Exception e) {
 		} finally {
 			if(scan != null) scan.close();
+		}
+	}
+	private void copyFile(File from, File to) throws IOException {
+		Files.copy(from.toPath(), to.toPath(), StandardCopyOption.REPLACE_EXISTING);
+	}
+	private void initializeImages() throws IOException {
+		File dir = new File(".");
+		String path = dir.getAbsolutePath();
+		dvdImages = (path.substring(0, path.length()-1) + "DVDImages");
+		File imageDir = new File(dvdImages);
+		String[] ratings = {"G", "PG", "PG-13", "NC-17", "R"};
+		for(int i = 0; i < ratings.length; i++) {
+			defaultImages[i] = new File(ratings[i] + ".png");
+		}
+		imageDir.mkdir();
+		int index = 0;
+		int prevIndex = 0;
+		String title, rating;
+		for(String dvd : dvdInfoList) {
+			index = nextBreak(dvd, index);
+			title = dvd.substring(prevIndex, index);
+			prevIndex = ++index;
+			index = nextBreak(dvd, index);
+			rating = dvd.substring(prevIndex, index++);
+			int ratingIndex = -1;
+			switch(rating) {
+				case "G":
+					ratingIndex = 0;
+					break;
+				case "PG":
+					ratingIndex = 1;
+					break;
+				case "PG-13":
+					ratingIndex = 2;
+					break;
+				case "R":
+					ratingIndex = 3;
+					break;
+				case "NC-17":
+					ratingIndex = 4;
+					break;
+			}
+			File dvdImage = new File(dvdImages + "/" + title + ".png");
+			if(!dvdImage.createNewFile() && ratingIndex >= 0) {
+				copyFile(defaultImages[ratingIndex], dvdImage);
+			}
+			index = 0;
+			prevIndex = 0;
 		}
 	}
 	private int nextBreak(String str, int index) {
@@ -101,7 +152,7 @@ public class DVDGUI implements DVDUserInterface {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		createUI(frame);
-		frame.setSize(500, 220);
+		frame.setSize(800, 220);
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}
@@ -111,11 +162,13 @@ public class DVDGUI implements DVDUserInterface {
 		JPanel ratingPanel = new JPanel();
 		JPanel runtimePanel = new JPanel();
 		JPanel buttonPanel = new JPanel();
+		JPanel imagePanel = new JPanel();
 		LayoutManager layout = new FlowLayout();
 		displayPanel.setLayout(layout);
 		buttonPanel.setLayout(layout);
 		ratingPanel.setLayout(new BorderLayout());
 		runtimePanel.setLayout(new BorderLayout());
+		imagePanel.setLayout(new BorderLayout());
 		
 
 		JTextArea rating = new JTextArea();
@@ -131,6 +184,12 @@ public class DVDGUI implements DVDUserInterface {
 		runtime.setFocusable(false);
 		JTextField runtimeText = new JTextField();
 		runtimeText.setSize(runtime.getSize());
+
+		JTextArea imageText = new JTextArea();
+		imageText.setText("Image:");
+		imageText.setEditable(false);
+		imageText.setFocusable(false);
+		JLabel dvdImage = new JLabel();
 		
 		JButton addButton = new JButton("Add DVD");
 		JButton modifyButton = new JButton("Modify DVD");
@@ -146,6 +205,11 @@ public class DVDGUI implements DVDUserInterface {
 		List dvdList = new List();
 		dvdInfoList = parseDVDLists(dvdList, listButtons, null, rating, runtime);
 		ratingSort = null;
+		try {
+			initializeImages();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		dvdList.addItemListener(new ItemListener() {
 			public void itemStateChanged (ItemEvent e) {
@@ -155,7 +219,7 @@ public class DVDGUI implements DVDUserInterface {
 							button.setEnabled(true);
 					}
 					int index = (int) e.getItem();
-					parseRatingRuntime(dvdInfoList, index, rating, runtime);
+					parseRatingRuntime(dvdInfoList, index, rating, runtime, dvdImage);
 				}
 			}
 		});
@@ -225,6 +289,11 @@ public class DVDGUI implements DVDUserInterface {
 		runtimePanel.add(runtimeText, BorderLayout.SOUTH);
 		displayPanel.add(runtimePanel);
 
+		imagePanel.add(imageText, BorderLayout.CENTER);
+		imagePanel.add(dvdImage, BorderLayout.SOUTH);
+		displayPanel.add(imagePanel);
+		
+
 		buttonPanel.add(addButton);
 		buttonPanel.add(modifyButton);
 		buttonPanel.add(removeButton);
@@ -236,6 +305,8 @@ public class DVDGUI implements DVDUserInterface {
 
 		frame.getContentPane().add(displayPanel, BorderLayout.NORTH);
 		frame.getContentPane().add(buttonPanel, BorderLayout.CENTER);
+
+		frame.pack();
 	}
 
 	private String[] parseDVDLists(List list, JButton[] listButtons, String dvdRating, JTextArea rating, JTextArea runtime) {
@@ -277,7 +348,7 @@ public class DVDGUI implements DVDUserInterface {
 		return infoList;
 	}
 
-	private void parseRatingRuntime(String[] list, int index, JTextArea rating, JTextArea runtime) {
+	private void parseRatingRuntime(String[] list, int index, JTextArea rating, JTextArea runtime, JLabel image) {
 		String parsestr = list[index];
 		int prevIndex = 0;
 		boolean notTitle = false;
@@ -289,6 +360,7 @@ public class DVDGUI implements DVDUserInterface {
 				continue;
 			}
 			if(character == ',') {
+				image.setIcon(new ImageIcon(dvdImages + "/" + parsestr.substring(prevIndex, i) + ".png"));
 				prevIndex = i + 1;
 				notTitle = true;
 			}

@@ -1,4 +1,6 @@
 *.class
+DVDImages/
+.DS_Store
 *.txt
 .classpath
 .project
