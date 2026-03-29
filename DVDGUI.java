@@ -81,8 +81,10 @@ public class DVDGUI implements DVDUserInterface {
 					index = nextBreak(line, index);
 					rating = line.substring(prevIndex, index++);
 					runningTime = line.substring(index, line.length());
+					String currentList = dvdlist.toString();
 					dvdlist.addOrModifyDVD(title, rating, runningTime);
-					newDvdImage(title, rating);
+					if(currentList.compareTo(dvdlist.toString()) != 0)
+						newDvdImage(title, rating);
 					index = 0;
 					prevIndex = 0;
 				}
